@@ -15,7 +15,8 @@ export default class SortableTable {
     const { bottom } = this.element.getBoundingClientRect();
     const { id, order } = this.sorted;
 
-    if (bottom < document.documentElement.clientHeight && !this.loading && !this.sortLocally) {
+    // if (bottom < document.documentElement.clientHeight && !this.loading && !this.sortLocally) {
+    if (bottom < document.documentElement.clientHeight && !this.loading && !this.isSortLocally) {
       this.start = this.end;
       this.end = this.start + this.step;
 
@@ -68,7 +69,9 @@ export default class SortableTable {
     isSortLocally = false,
     step = 20,
     start = 1,
-    end = start + step
+    end = start + step,
+    embed = '',
+    rowHrefTemplate = ''
   } = {}) {
 
     this.headersConfig = headersConfig;
@@ -78,6 +81,8 @@ export default class SortableTable {
     this.step = step;
     this.start = start;
     this.end = end;
+    this.embed = embed;
+    this.rowHrefTemplate = rowHrefTemplate;
 
     this.render();
   }
@@ -100,11 +105,20 @@ export default class SortableTable {
     return this.element;
   }
 
+  resetPagination () {
+    this.start = 1;
+    this.end = this.start + this.step;
+  }
+
   async loadData (id, order, start = this.start, end = this.end) {
     this.url.searchParams.set('_sort', id);
     this.url.searchParams.set('_order', order);
     this.url.searchParams.set('_start', start);
     this.url.searchParams.set('_end', end);
+    
+    if (this.embed) {
+      this.url.searchParams.set('_embed', this.embed);
+    }
 
     this.element.classList.add('sortable-table_loading');
 
@@ -169,10 +183,27 @@ export default class SortableTable {
   }
 
   getTableRows (data) {
+    if (data[0] && this.rowHrefTemplate) {
+      return this.getTableHrefRows(data);
+    }
+
+    return this.getTableSimpleRows(data);
+    
+  }
+
+  getTableSimpleRows (data) {
     return data.map(item => `
       <div class="sortable-table__row">
         ${this.getTableRow(item, data)}
       </div>`
+    ).join('');
+  }
+
+  getTableHrefRows (data) {
+    return data.map(item => `
+      <a href="${this.rowHrefTemplate(item)}" class="sortable-table__row">
+        ${this.getTableRow(item, data)}
+      </a>`
     ).join('');
   }
 
@@ -217,6 +248,8 @@ export default class SortableTable {
   }
 
   async sortOnServer (id, order, start, end) {
+    this.resetPagination();
+
     const data = await this.loadData(id, order, start, end);
 
     this.renderRows(data);
