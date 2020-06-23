@@ -7,7 +7,6 @@ const BACKEND_URL = 'https://course-js.javascript.ru';
 const BACKEND_SEND_URL = 'https://course-js.javascript.ru';
 const PRODUCTS_API = 'api/rest/products';
 const CATEGIRIES_API = 'api/rest/categories?_sort=weight&_refs=subcategory';
-// const IMAGE_PATH = '../assets/icons/';
 
 export default class ProductForm {
     element;
@@ -65,7 +64,7 @@ export default class ProductForm {
             notification = new NotificationMessage(`${error.message}`, {type : 'error'});
         }
 
-        notification.show(this.element.productForm);
+        notification.show(this.subElements.productForm);
     }
 
     async loadCategories() {
@@ -102,7 +101,7 @@ export default class ProductForm {
 
     async uploadImage (file) {
         const { uploadImage, imageList } = this.subElements;
-        uploadImage.classList.add("is-loading");
+        uploadImage.classList.add("is-loading"),
         uploadImage.disabled = true;
 
         const imageUploader = new ImageUploader();
@@ -153,6 +152,13 @@ export default class ProductForm {
         return accum;
     }
 
+    addImagesListItems() {
+        const items = this.getImageElementsArray();
+        const { imageList : element } = this.subElements
+
+        this.sortableList = new SortableList({ element, items });
+    }
+
     async render () {
         await this.loadData(this.productId);
         
@@ -160,14 +166,10 @@ export default class ProductForm {
         wrapper.innerHTML = this.template();
 
         const element = wrapper.firstElementChild;
+        
         this.subElements = this.getSubElements(element);
 
-        const images = this.getImagesListArray();
-        const sortableList = new SortableList({ element : this.subElements.imageList, items : images });
-        
-        this.subElements.imageList.replaceWith(sortableList.element);
-        
-        this.sortableList = sortableList;
+        this.addImagesListItems();
         
         this.addSubCategoryOptions();
         
@@ -178,8 +180,15 @@ export default class ProductForm {
         return this.element;
     }
 
+    getImageElementsArray() {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = this.getImagesListTemplate();
+
+        return [...wrapper.children];
+    }
+
     initEventListeners() {
-        const { uploadImage, imageList, inputFile } = this.subElements;
+        const { uploadImage, inputFile } = this.subElements;
         
         uploadImage.addEventListener('click', this.uploadImageShowEvent);
         inputFile.addEventListener('change', this.uploadImageChangeEvent);
@@ -187,10 +196,11 @@ export default class ProductForm {
     }
 
     removeEventListeners() {
-        const { uploadImage, imageList, inputFile } = this.subElements;
+        const { uploadImage, inputFile } = this.subElements;
         
         uploadImage.removeEventListener('click', this.uploadImageShowEvent);
         inputFile.removeEventListener('change', this.uploadImageChangeEvent);
+        this.subElements.productForm.removeEventListener('submit', this.submitEvent);
     }
 
     addSubCategoryOptions() {
@@ -259,15 +269,14 @@ export default class ProductForm {
         `;
     }
 
-    // ${this.imagesListTemplate()}
-    getImagesListArray () {
+    getImagesListTemplate() {
         const { images } = this.productData;
 
         if (! images || ! images.length) {
             return '';
         }
 
-        return images.map(image => this.imageTemplate(image));
+        return images.map(image => this.imageTemplate(image)).join('');
     }
 
     imagesTemplate() {
@@ -276,7 +285,7 @@ export default class ProductForm {
             <label class="form-label">Фото</label>
             
             <div data-element="imageListContainer">
-                <ul data-element="imageList" class="sortable-list"></ul>
+                <ul data-element="imageList"></ul>
             </div>
             
             <button type="button" data-element="uploadImage" name="uploadImage" class="button-primary-outline"><span>Загрузить</span></button>
@@ -359,6 +368,7 @@ export default class ProductForm {
     }
 
     remove() {
+        this.sortableList.destroy();
         this.removeEventListeners();
         this.element.remove();
     }

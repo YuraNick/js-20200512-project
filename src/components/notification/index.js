@@ -57,7 +57,6 @@ export default class NotificationMessage {
     }
 
     render() {
-        // решил, что будет неправильно размещать всю конструкцию сообщение внутри простого div
         const element = document.createElement('div');
         element.className = `notification ${this.type}`;
         element.setAttribute('style', `--value:${this.durationSeconds}s`);

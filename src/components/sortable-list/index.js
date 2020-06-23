@@ -14,7 +14,7 @@ export default class SortableList {
     sortableListEvent = (event) => {
         const element = event.target;
 
-        const listElement = element.closest('sortable-list__item');
+        const listElement = element.closest('.sortable-list__item');
 
         if (element.closest('[data-delete-handle]')) {
             listElement.remove();
